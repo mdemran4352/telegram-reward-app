@@ -1,67 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Reward Mini App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Telegram Reward Mini App</title>
+
+  <!-- Telegram Web App JS -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- ✅ তোমার Monetag SDK -->
+  <script src='//libtl.com/sdk.js'
+          data-zone='9459480'
+          data-sdk='show_9459480'></script>
+
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 40px;
-      background: #f4f4f4;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      display: inline-block;
-    }
-    button {
-      padding: 12px 25px;
-      font-size: 18px;
-      margin-top: 20px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    #coins {
-      font-size: 24px;
-      margin: 15px 0;
-      color: #333;
-    }
+    body{font-family:sans-serif;text-align:center;margin:0;padding:2rem;}
+    #coin{font-size:1.5rem;margin-bottom:1rem;}
+    button{padding:.8rem 1.4rem;font-size:1.1rem;border:none;border-radius:8px;cursor:pointer;}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🎁 Earn Rewards!</h2>
-    <p id="coins">Your Coins: 0</p>
-    <button onclick="watchAd()">📺 Watch Ad & Earn</button>
-  </div>
 
-  <!-- Monetag Script -->
-  <script type="text/javascript">
-    var monetag_tag = monetag_tag || [];
-    monetag_tag.push({
-        tag: "direct",
-        type: "js",
-        pid: "YOUR_MONETAG_PID"
-    });
-  </script>
-  <script src="//ad.monetag.com/tag.js" type="text/javascript" async></script>
+  <h2>🎁 Earn Coins by Watching Ads</h2>
+  <div id="coin">Coins: 0</div>
+  <button id="watch">Watch Ad &amp; Earn 1 Coin</button>
 
   <script>
-    let coins = localStorage.getItem("coins") || 0;
-    document.getElementById("coins").innerText = "Your Coins: " + coins;
+    /* ---------- Telegram helper ---------- */
+    const tg = window.Telegram?.WebApp;
+    if (tg){ tg.ready(); tg.expand(); }
 
-    function watchAd() {
-      window.open("https://your-monetag-link.com", "_blank");
-      coins = parseInt(coins) + 1;
-      localStorage.setItem("coins", coins);
-      document.getElementById("coins").innerText = "Your Coins: " + coins;
-    }
+    /* ---------- Coin helpers ---------- */
+    const coinEl = document.getElementById('coin');
+    const getCoins = () => parseInt(localStorage.getItem('coins') || '0', 10);
+    const setCoins = c => { localStorage.setItem('coins', c); coinEl.textContent = 'Coins: '+c; };
+    setCoins(getCoins());
+
+    /* ---------- Watch-Ad button ---------- */
+    document.getElementById('watch').addEventListener('click', () => {
+
+      /* SDK লোড না-হলে ইউজারকে অপেক্ষা করাও */
+      if (typeof show_9459480 !== 'function'){
+        alert('Ad is loading, please tap again in a second…');
+        return;
+      }
+
+      /* Monetag Rewarded Popup */
+      show_9459480('pop')
+        .then(() => {
+          const coins = getCoins() + 1;
+          setCoins(coins);
+          tg?.showAlert?.(`🎉 You earned 1 coin!\nTotal: ${coins}`);
+        })
+        .catch(err => {
+          console.error('Ad error:', err);
+          tg?.showAlert?.('Ad failed to load — please try later.');
+        });
+    });
   </script>
+
 </body>
 </html>
