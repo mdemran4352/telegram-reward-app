@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reward Mini App</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 40px;
+      background: #f4f4f4;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: inline-block;
+    }
+    button {
+      padding: 12px 25px;
+      font-size: 18px;
+      margin-top: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #coins {
+      font-size: 24px;
+      margin: 15px 0;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🎁 Earn Rewards!</h2>
+    <p id="coins">Your Coins: 0</p>
+    <button onclick="watchAd()">📺 Watch Ad & Earn</button>
+  </div>
+
+  <!-- Monetag Script -->
+  <script type="text/javascript">
+    var monetag_tag = monetag_tag || [];
+    monetag_tag.push({
+        tag: "direct",
+        type: "js",
+        pid: "YOUR_MONETAG_PID"
+    });
+  </script>
+  <script src="//ad.monetag.com/tag.js" type="text/javascript" async></script>
+
+  <script>
+    let coins = localStorage.getItem("coins") || 0;
+    document.getElementById("coins").innerText = "Your Coins: " + coins;
+
+    function watchAd() {
+      window.open("https://your-monetag-link.com", "_blank");
+      coins = parseInt(coins) + 1;
+      localStorage.setItem("coins", coins);
+      document.getElementById("coins").innerText = "Your Coins: " + coins;
+    }
+  </script>
+</body>
+</html>
