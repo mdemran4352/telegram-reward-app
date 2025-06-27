@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telegram Reward Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; text-align: center; }
+    video { width: 100%; max-width: 600px; border: 2px solid #007bff; border-radius: 10px; margin-top: 1rem; }
+    button { padding: 0.7rem 1.4rem; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>🎁 Earn Coins by Watching Video</h2>
+  <div id="user" hidden>Logged in as <span id="userName"></span></div>
+  <button id="login">🔑 Sign-in with Google</button>
+  <div id="coin">Coins: 0</div>
+  <div id="videoWrap" style="display:none;">
+    <div id="title"></div>
+    <video id="rewardVideo" controls crossorigin="anonymous"></video>
+    <p>Watch full video to earn 1 coin.</p>
+  </div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuZHkVHWZbJSYAeE7iC1ZCaw4gOlvtz88",
+      authDomain: "rewardminiapp.firebaseapp.com",
+      projectId: "rewardminiapp",
+      storageBucket: "rewardminiapp.appspot.com",
+      messagingSenderId: "141140205968",
+      appId: "1:141140205968:web:4bfd0454e624f807cd5315",
+      measurementId: "G-02K7J27PL9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+    const coinEl = document.getElementById("coin");
+    const loginBtn = document.getElementById("login");
+    const userBox = document.getElementById("user");
+    const userNameSpan = document.getElementById("userName");
+    const videoWrap = document.getElementById("videoWrap");
+    const videoEl = document.getElementById("rewardVideo");
+    const titleEl = document.getElementById("title");
+
+    const uidKey = () => "coins_" + (auth.currentUser?.uid || "anon");
+    const getCoins = () => parseInt(localStorage.getItem(uidKey()) || "0");
+    const setCoins = c => { localStorage.setItem(uidKey(), c); coinEl.textContent = "Coins: " + c; };
+    setCoins(getCoins());
+
+    loginBtn.onclick = () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => alert(err.message));
+    };
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginBtn.style.display = "none";
+        userNameSpan.textContent = user.displayName || user.email;
+        userBox.hidden = false;
+        setCoins(getCoins());
+        loadVideoList();
+      }
+    });
+
+    const JSON_URL = "videos.json";
+    let playlist = [];
+
+    async function loadVideoList() {
+      try {
+        const res = await fetch(JSON_URL);
+        const data = await res.json();
+        playlist = data.videos || [];
+        chooseVideo();
+      } catch (e) {
+        console.error("Failed to load videos.json", e);
+        tg?.showAlert?.("Could not load videos");
+      }
+    }
+
+    function chooseVideo() {
+      if (!playlist.length) return tg?.showAlert?.("No video available");
+      const vid = playlist[Math.floor(Math.random() * playlist.length)];
+      titleEl.textContent = vid.title;
+      videoEl.src = vid.url;
+      videoWrap.style.display = "block";
+    }
+
+    videoEl.addEventListener("ended", () => {
+      if (!auth.currentUser) return;
+      const coins = getCoins() + 1;
+      setCoins(coins);
+      tg?.showAlert?.(`🎉 You earned 1 coin! Total: ${coins}`);
+    });
+  </script>
+</body>
+</html>
