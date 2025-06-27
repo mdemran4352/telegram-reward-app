@@ -2,7 +2,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Telegram Reward Mini App – Google Login + Daily Video Reward</title>  <!-- Telegram Web‑App JS -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>  <!-- Firebase (v9 compat for brevity) – ▶ Replace config with your own ◀ -->  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>  <style>
+  <title>Telegram Reward Mini App – Google Login + Daily Video Reward</title>  <!-- Telegram Web‑App JS -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>  <!-- Firebase (v9 compat) -->  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics-compat.js"></script>  <style>
     :root{--brand:#006eff}
     *{box-sizing:border-box;font-family:system-ui,sans-serif}
     body{margin:0;padding:2rem;text-align:center}
@@ -21,7 +21,7 @@
     <video id="rewardVideo" controls></video>
     <p>Watch the full video to earn 1 coin.</p>
   </div><script>
-/* ---------- 1) Firebase ---------- */
+/**************** 1) Firebase ****************/
 const firebaseConfig = {
   apiKey: "AIzaSyDuZHkVHWZbJSYAeE7iC1ZCaw4gOlvtz88",
   authDomain: "rewardminiapp.firebaseapp.com",
@@ -32,51 +32,67 @@ const firebaseConfig = {
   measurementId: "G-02K7J27PL9"
 };
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
+firebase.analytics?.();
+const auth = firebase.auth();
 
-/* ---------- 2) Telegram helpers ---------- */
-const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
+/************** 2) Telegram helpers *********/
+const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
 
-/* ---------- 3) Coin helpers ---------- */
-const coinEl=document.getElementById('coin');
-const uidKey=()=>`coins_${auth.currentUser?.uid||'anon'}`;
-const getCoins=()=>parseInt(localStorage.getItem(uidKey())||'0',10);
-const setCoins=c=>{localStorage.setItem(uidKey(),c);coinEl.textContent='Coins: '+c};
+/************** 3) Coin helpers *************/
+const coinEl = document.getElementById('coin');
+const uidKey = () => `coins_${auth.currentUser?.uid||'anon'}`;
+const getCoins = () => parseInt(localStorage.getItem(uidKey())||'0',10);
+const setCoins = c => { localStorage.setItem(uidKey(),c); coinEl.textContent = 'Coins: '+c; };
 setCoins(getCoins());
 
-/* ---------- 4) HTML refs ---------- */
-const loginBtn=document.getElementById('login');
-const userBox=document.getElementById('user');
-const userNameSpan=document.getElementById('userName');
-const videoWrap=document.getElementById('videoWrap');
-const videoEl=document.getElementById('rewardVideo');
-const titleEl=document.getElementById('title');
+/************** 4) HTML refs ***************/
+const loginBtn   = document.getElementById('login');
+const userBox    = document.getElementById('user');
+const userNameEl = document.getElementById('userName');
+const videoWrap  = document.getElementById('videoWrap');
+const videoEl    = document.getElementById('rewardVideo');
+const titleEl    = document.getElementById('title');
 
-/* ---------- 5) Google Login ---------- */
-loginBtn.onclick=()=>{
-  const provider=new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err=>alert(err.message));
-};
+/************** 5) Google Login (popup + redirect fallback) *********/
+function startPopup(provider){
+  return auth.signInWithPopup(provider).catch(err=>{
+    // If popup blocked, fallback to redirect
+    if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(err.code)){
+      return auth.signInWithRedirect(provider);
+    }
+    throw err;
+  });
+}
+
+loginBtn.addEventListener('click',()=>{
+  const provider = new firebase.auth.GoogleAuthProvider();
+  startPopup(provider).catch(e=>alert(e.message));
+});
+
+// Handle redirect result (Telegram WebView case)
+auth.getRedirectResult().then(res=>{
+  if(res.user){ console.log('Signed in via redirect'); }
+}).catch(console.error);
 
 auth.onAuthStateChanged(user=>{
   if(user){
     loginBtn.style.display='none';
-    userNameSpan.textContent=user.displayName||user.email;
-    userBox.hidden=false;
+    userNameEl.textContent = user.displayName || user.email;
+    userBox.hidden = false;
     setCoins(getCoins());
     loadVideoList();
   }
 });
 
-/* ---------- 6) Load video list from videos.json ---------- */
-const JSON_URL='videos.json'; // same‑repo relative path; change if needed
-let playlist=[];
+/************** 6) Load video list ***********/
+const JSON_URL = 'videos.json';
+let playlist = [];
 
 async function loadVideoList(){
   try{
-    const res=await fetch(JSON_URL);
-    const data=await res.json();
-    playlist=data.videos||[];
+    const res = await fetch(JSON_URL);
+    const data = await res.json();
+    playlist = data.videos || [];
     chooseVideo();
   }catch(e){
     console.error('Failed to load videos.json',e);
@@ -85,32 +101,31 @@ async function loadVideoList(){
 }
 
 function chooseVideo(){
-  if(!playlist.length){tg?.showAlert?.('No video available');return;}
-  // pick a random video not yet rewarded; fallback to any
-  const unviewed=playlist.filter(v=>!localStorage.getItem(rewardKey(v.url)));
-  const vid=unviewed.length?unviewed[Math.floor(Math.random()*unviewed.length)]
-                          :playlist[Math.floor(Math.random()*playlist.length)];
-  titleEl.textContent=vid.title;
-  videoEl.src=vid.url;
+  if(!playlist.length){ tg?.showAlert?.('No video available'); return; }
+  const unviewed = playlist.filter(v=>!localStorage.getItem(rewardKey(v.url)));
+  const vid = unviewed.length ? unviewed[Math.floor(Math.random()*unviewed.length)]
+                              : playlist[Math.floor(Math.random()*playlist.length)];
+  titleEl.textContent = vid.title;
+  videoEl.src = vid.url;
   videoEl.load();
-  videoEl.dataset.currentUrl=vid.url;
-  videoEl.dataset.rewarded='';
-  videoWrap.style.display='block';
+  videoEl.dataset.currentUrl = vid.url;
+  videoEl.dataset.rewarded = '';
+  videoWrap.style.display = 'block';
 }
 
-function rewardKey(url){return `rewarded_${auth.currentUser.uid}_${url}`;}
+function rewardKey(url){ return `rewarded_${auth.currentUser.uid}_${url}`; }
 
-/* ---------- 7) Reward logic ---------- */
+/************** 7) Reward logic *************/
 videoEl.addEventListener('ended',()=>{
-  const user=auth.currentUser;
-  if(!user){tg?.showAlert?.('Please sign‑in first');return;}
-  const url=videoEl.dataset.currentUrl;
-  const key=rewardKey(url);
+  const user = auth.currentUser;
+  if(!user){ tg?.showAlert?.('Please sign‑in first'); return; }
+  const url = videoEl.dataset.currentUrl;
+  const key = rewardKey(url);
   if(localStorage.getItem(key)){
     tg?.showAlert?.('Reward already claimed for this video');
     return;
   }
-  const coins=getCoins()+1;
+  const coins = getCoins()+1;
   setCoins(coins);
   localStorage.setItem(key,'1');
   videoEl.dataset.rewarded='1';
