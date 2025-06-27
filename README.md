@@ -1,24 +1,38 @@
 # Telegram Reward Mini App
 
-🎁 A simple Telegram Mini App where users can earn coins by watching ads.
+🎁 A simple Telegram Mini App where users can earn coins by watching videos.
 
 ## 🔥 Features
-- Watch ads and earn coins
+- Sign in with Google
+- Watch videos and earn coins
+- One coin per full video watch (daily limit optional)
 - Coins saved in local storage
-- Monetag ad integration
+- Firebase Authentication
 - Simple and mobile-friendly UI
+- Telegram Web App compatible
 
 ## 🚀 Live Demo
-👉 [https://yourusername.github.io/telegram-reward-app](https://yourusername.github.io/telegram-reward-app)
+👉 [https://mdemran4352.github.io/telegram-reward-app](https://mdemran4352.github.io/telegram-reward-app)
 
 ## ⚙️ How to Use
-1. Click the "Watch Ad & Earn" button
-2. A Monetag ad will open in a new tab
-3. You’ll earn 1 coin after viewing
+1. Click the **"Sign in with Google"** button
+2. Watch any full video to earn 1 coin
+3. Coins are stored per user (via localStorage and UID)
+
+## 📂 Structure
+- `index.html` – Main UI + Logic
+- `videos.json` – List of reward videos (MP4 URL + title)
+- `README.md` – Project description and guide
 
 ## 🧩 Customization
-- Replace `YOUR_MONETAG_PID` in `index.html` with your Monetag ad PID
+- You can edit `videos.json` to include your own hosted videos
+- Replace `Monetag` code (if used) with your PID in `index.html`
+
+## 🔐 Firebase Setup
+- Make sure to enable **Google Sign-In** in Firebase Console
+- Add your domain: `github.io` and `mdemran4352.github.io` to **authorized domains**
+- Replace your Firebase config in `index.html`
 
 ---
 
-✅ Built for Telegram Web Apps | Made by [Your Name]
+✅ Built with ❤️ for Telegram Web Apps | Made by [Emran Hossain]
