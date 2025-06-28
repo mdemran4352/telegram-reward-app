@@ -1,24 +1,24 @@
 {
   "videos": [
     {
-      "title": "Demo Video 1",
-      "url": "https://cdn.videvo.net/videvo_files/video/free/2013-08/small_watermarked/hd1043_preview.webm"
+      "title": "Test Video 1",
+      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
     },
     {
-      "title": "Demo Video 2",
-      "url": "https://cdn.videvo.net/videvo_files/video/free/2013-08/small_watermarked/hd1043_preview.webm"
+      "title": "Test Video 2",
+      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
     },
     {
-      "title": "Demo Video 3",
-      "url": "https://cdn.videvo.net/videvo_files/video/free/2013-08/small_watermarked/hd1043_preview.webm"
+      "title": "Test Video 3",
+      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
     },
     {
-      "title": "Demo Video 4",
-      "url": "https://cdn.videvo.net/videvo_files/video/free/2013-08/small_watermarked/hd1043_preview.webm"
+      "title": "Test Video 4",
+      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
     },
     {
-      "title": "Demo Video 5",
-      "url": "https://cdn.videvo.net/videvo_files/video/free/2013-08/small_watermarked/hd1043_preview.webm"
+      "title": "Test Video 5",
+      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
     }
   ]
 }
