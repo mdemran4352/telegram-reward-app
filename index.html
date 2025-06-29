@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,7 +18,6 @@
     video { width: 100%; max-height: 60vh; border: 2px solid var(--brand); border-radius: 12px; }
     #title { margin: .5rem 0; font-weight: 600; }
     #referral { margin: 1rem 0; font-size: 0.9rem; word-break: break-all; }
-    #playHint { color: #006eff; font-size: 0.9rem; margin-top: 0.5rem; display: none; }
   </style>
 </head>
 <body>
@@ -33,12 +31,12 @@
   <button id="spin">🎰 Spin & Win</button>
   <div id="videoWrap">
     <div id="title"></div>
-    <video id="rewardVideo" controls></video>
+    <video id="rewardVideo" controls playsinline preload="metadata" crossorigin="anonymous" style="background:#000;border-radius:12px;width:100%;max-height:60vh;">
+  <source src="" type="video/mp4" />
+  Sorry, your browser doesn't support embedded videos.
+</video>
     <p>Watch the full video to earn 1 coin.</p>
-    <div id="playHint">Please click the play button to watch the video.</div>
-  </div>
-
-  <script>
+  </div>  <script>
     // 1. Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDuZHkVHWZbJSYAeE7iC1ZCaw4gOlvtz88",
@@ -66,7 +64,6 @@
     const videoWrap = document.getElementById('videoWrap');
     const videoEl = document.getElementById('rewardVideo');
     const titleEl = document.getElementById('title');
-    const playHint = document.getElementById('playHint');
 
     // 4. Coin Logic
     const uidKey = () => `coins_${auth.currentUser?.uid || 'anon'}`;
@@ -89,13 +86,8 @@
         userNameSpan.textContent = user.displayName || user.email;
         userBox.hidden = false;
         setCoins(getCoins());
-        referralBox.innerHTML = `Referral link: <a href="https://t.me/Ghuri_bot?start=${user.uid}" target="_blank">https://t.me/Ghuri_bot?start=${user.uid}</a>`;
+        referralBox.innerHTML = `Referral link: <a href="https://t.me/Ghuri_bot?start=${user.uid}">https://t.me/Ghuri_bot?start=${user.uid}</a>`;
         loadVideoList();
-      } else {
-        loginBtn.style.display = 'inline-block';
-        userBox.hidden = true;
-        setCoins(0);
-        videoWrap.style.display = 'none';
       }
     });
 
@@ -115,12 +107,7 @@
     }
 
     function chooseVideo() {
-      if (!playlist.length) { 
-        tg?.showAlert?.('No video available'); 
-        videoWrap.style.display = 'none';
-        return; 
-      }
-      // Videos not rewarded yet
+      if (!playlist.length) { tg?.showAlert?.('No video available'); return; }
       const unviewed = playlist.filter(v => !localStorage.getItem(rewardKey(v.url)));
       const vid = unviewed.length ? unviewed[Math.floor(Math.random() * unviewed.length)] : playlist[Math.floor(Math.random() * playlist.length)];
       titleEl.textContent = vid.title;
@@ -129,7 +116,6 @@
       videoEl.dataset.currentUrl = vid.url;
       videoEl.dataset.rewarded = '';
       videoWrap.style.display = 'block';
-      playHint.style.display = 'block';
     }
 
     function rewardKey(url) {
@@ -139,19 +125,11 @@
     // 7. Video reward
     videoEl.addEventListener('ended', () => {
       const user = auth.currentUser;
-      if (!user) { 
-        tg?.showAlert?.('Please sign‑in first'); 
-        return; 
-      }
+      if (!user) { tg?.showAlert?.('Please sign‑in first'); return; }
       const url = videoEl.dataset.currentUrl;
       const key = rewardKey(url);
       if (localStorage.getItem(key)) {
         tg?.showAlert?.('Reward already claimed for this video');
-        return;
-      }
-      // Only reward if video was really played
-      if (videoEl.dataset.rewarded === '1') {
-        tg?.showAlert?.('You already earned coins for this video.');
         return;
       }
       const coins = getCoins() + 1;
@@ -159,21 +137,11 @@
       localStorage.setItem(key, '1');
       videoEl.dataset.rewarded = '1';
       tg?.showAlert?.(`🎉 You earned 1 coin! Total: ${coins}`);
-      playHint.style.display = 'none';
     });
 
-    // Mark video played when user presses play
-    videoEl.addEventListener('play', () => {
-      playHint.style.display = 'none';
-    });
-
-    // 8. Spin & Win with login check
+    // 8. Spin & Win
     const spinKey = () => `last_spin_${auth.currentUser?.uid}`;
     spinBtn.onclick = () => {
-      if (!auth.currentUser) {
-        tg?.showAlert?.('Please sign in first to spin!');
-        return;
-      }
       const lastSpin = localStorage.getItem(spinKey());
       const today = new Date().toDateString();
       if (lastSpin === today) {
@@ -191,6 +159,5 @@
       }
       localStorage.setItem(spinKey(), today);
     };
-  </script>
-</body>
+  </script></body>
 </html>
