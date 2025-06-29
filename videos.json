@@ -1,24 +1,16 @@
 {
   "videos": [
     {
-      "title": "Test Video 1",
-      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
+      "title": "Video 1",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/video1.mp4"
     },
     {
-      "title": "Test Video 2",
-      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
+      "title": "Video 2",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/video2.mp4"
     },
     {
-      "title": "Test Video 3",
-      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
-    },
-    {
-      "title": "Test Video 4",
-      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
-    },
-    {
-      "title": "Test Video 5",
-      "url": "https://cdn.jsdelivr.net/gh/AnIdiotsGuide/videos@master/BigBuckBunny.mp4"
+      "title": "Video 3",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/video3.mp4"
     }
   ]
 }
