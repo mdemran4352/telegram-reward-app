@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Telegram Reward Mini App – Spin & Win</title>
-  <!-- Telegram Web‑App JS -->
+  <itabletle>Telegram Reward Mini App – Spin & Win</title>
+  <!-- Telegram Web-App JS -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <!-- Monetag Ad Code -->
+  <script src='//libtl.com/sdk.js' data-zone='9459480' data-sdk='show_9459480'></script>
   <style>
     :root { --brand: #006eff; }
     * { box-sizing: border-box; font-family: system-ui, sans-serif; }
@@ -19,6 +21,8 @@
     video { width: 100%; max-height: 60vh; border: 2px solid var(--brand); border-radius: 12px; }
     #title { margin: .5rem 0; font-weight: 600; }
     #referral { margin: 1rem 0; font-size: 0.9rem; word-break: break-all; }
+    #adWrap { display: none; margin-top: 1rem; }
+    #adContainer { width: 100%; max-height: 60vh; }
   </style>
 </head>
 <body>
@@ -27,16 +31,20 @@
     Logged in as <span id="userName"></span>
     <div id="referral"></div>
   </div>
-  <button id="login">🔑 Sign‑in with Google</button>
+  <button id="login">🔑 Sign-in with Google</button>
   <div id="coin">Coins: 0</div>
   <button id="spin">🎰 Spin & Win</button>
   <div id="videoWrap">
     <div id="title"></div>
     <video id="rewardVideo" controls playsinline preload="metadata" crossorigin="anonymous" style="background:#000;border-radius:12px;width:100%;max-height:60vh;">
-  <source src="" type="video/mp4" />
-  Sorry, your browser doesn't support embedded videos.
-</video>
-    <p>Watch the full video to earn 1 coin.</p>
+      <source src="" type="video/mp4" />
+      Sorry, your browser doesn't support embedded videos.
+    </video>
+    <p>Watch the full video to proceed to the ad.</p>
+  </div>
+  <div id="adWrap">
+    <p>Watch the ad for 30 seconds to earn 1 coin.</p>
+    <div id="adContainer"></div>
   </div>
 
   <script>
@@ -67,6 +75,8 @@
     const videoWrap = document.getElementById('videoWrap');
     const videoEl = document.getElementById('rewardVideo');
     const titleEl = document.getElementById('title');
+    const adWrap = document.getElementById('adWrap');
+    const adContainer = document.getElementById('adContainer');
 
     // 4. Coin Logic
     const uidKey = () => `coins_${auth.currentUser?.uid || 'anon'}`;
@@ -80,7 +90,7 @@
     // 5. Login Logic
     loginBtn.onclick = () => {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(err => alert(err.message));
+      auth.signInWithPopup(provider).catch(err => tg?.showAlert?.(err.message));
     };
 
     auth.onAuthStateChanged(user => {
@@ -94,7 +104,7 @@
       }
     });
 
-    // 6. Load videos
+    // 6. Load Videos
     const JSON_URL = 'videos.json';
     let playlist = [];
     async function loadVideoList() {
@@ -110,7 +120,10 @@
     }
 
     function chooseVideo() {
-      if (!playlist.length) { tg?.showAlert?.('No video available'); return; }
+      if (!playlist.length) {
+        tg?.showAlert?.('No video available');
+        return;
+      }
       const unviewed = playlist.filter(v => !localStorage.getItem(rewardKey(v.url)));
       const vid = unviewed.length ? unviewed[Math.floor(Math.random() * unviewed.length)] : playlist[Math.floor(Math.random() * playlist.length)];
       titleEl.textContent = vid.title;
@@ -119,28 +132,89 @@
       videoEl.dataset.currentUrl = vid.url;
       videoEl.dataset.rewarded = '';
       videoWrap.style.display = 'block';
+      adWrap.style.display = 'none';
     }
 
     function rewardKey(url) {
-      return `rewarded_${auth.currentUser.uid}_${url}`;
+      return `rewarded_${auth.currentUser?.uid}_${url}`;
     }
 
-    // 7. Video reward
+    // 7. Ad and Video Reward Logic
+    let adWatchStartTime = null;
+    let adWatchedFor30Seconds = false;
+
     videoEl.addEventListener('ended', () => {
       const user = auth.currentUser;
-      if (!user) { tg?.showAlert?.('Please sign‑in first'); return; }
-      const url = videoEl.dataset.currentUrl;
-      const key = rewardKey(url);
-      if (localStorage.getItem(key)) {
-        tg?.showAlert?.('Reward already claimed for this video');
+      if (!user) {
+        tg?.showAlert?.('Please sign-in first');
         return;
       }
-      const coins = getCoins() + 1;
-      setCoins(coins);
-      localStorage.setItem(key, '1');
-      videoEl.dataset.rewarded = '1';
-      tg?.showAlert?.(`🎉 You earned 1 coin! Total: ${coins}`);
+      videoWrap.style.display = 'none';
+      adWrap.style.display = 'block';
+      showMonetagAd();
     });
+
+    function showMonetagAd() {
+      adContainer.innerHTML = ''; // Clear previous ad
+      adWatchStartTime = Date.now();
+      adWatchedFor30Seconds = false;
+
+      // Load Monetag ad
+      if (window.show_9459480) {
+        window.show_9459480('preload').then(() => {
+          window.show_9459480('pop'); // Show Rewarded Interstitial
+          // Track ad watch time
+          const adWatchInterval = setInterval(() => {
+            const timeWatched = (Date.now() - adWatchStartTime) / 1000; // Convert to seconds
+            if (timeWatched >= 30) {
+              adWatchedFor30Seconds = true;
+              clearInterval(adWatchInterval);
+            }
+          }, 1000);
+        }).catch(err => {
+          console.error('Failed to load Monetag ad', err);
+          tg?.showAlert?.('Could not load ad, please try again');
+          adWrap.style.display = 'none';
+          videoWrap.style.display = 'block';
+          chooseVideo();
+        });
+      } else {
+        tg?.showAlert?.('Ad system not ready');
+        adWrap.style.display = 'none';
+        videoWrap.style.display = 'block';
+        chooseVideo();
+      }
+    }
+
+    function handleAdClose() {
+      const user = auth.currentUser;
+      const videoUrl = videoEl.dataset.currentUrl;
+      const key = rewardKey(videoUrl);
+
+      if (adWatchedFor30Seconds && !localStorage.getItem(key)) {
+        const coins = getCoins() + 1;
+        setCoins(coins);
+        localStorage.setItem(key, '1');
+        videoEl.dataset.rewarded = '1';
+        tg?.showAlert?.(`🎉 You earned 1 coin! Total: ${coins}`);
+      } else if (!adWatchedFor30Seconds) {
+        tg?.showAlert?.('You need to watch the ad for 30 seconds to earn a coin.');
+      } else {
+        tg?.showAlert?.('Reward already claimed for this video.');
+      }
+
+      adWrap.style.display = 'none';
+      videoWrap.style.display = 'block';
+      chooseVideo();
+      videoEl.play(); // Auto-play the next video
+    }
+
+    // Simulate ad close (replace with actual Monetag ad close event if available)
+    setInterval(() => {
+      if (adWrap.style.display === 'block' && adWatchedFor30Seconds) {
+        handleAdClose(); // Trigger after 30 seconds if ad is still visible
+      }
+    }, 1000);
 
     // 8. Spin & Win
     const spinKey = () => `last_spin_${auth.currentUser?.uid}`;
