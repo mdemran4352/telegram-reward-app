@@ -1,16 +1,16 @@
 {
   "videos": [
     {
-      "title": "Video 1",
-      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app@main/videos/video1.mp4"
+      "title": "Demo Video 1",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/videos/video1.mp4"
     },
     {
-      "title": "Video 2",
-      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app@main/videos/video2.mp4"
+      "title": "Demo Video 2",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/videos/video2.mp4"
     },
     {
-      "title": "Video 3",
-      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app@main/videos/video3.mp4"
+      "title": "Demo Video 3",
+      "url": "https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/videos/video3.mp4"
     }
   ]
 }
