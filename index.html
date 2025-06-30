@@ -2,64 +2,166 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reward Mini App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telegram Reward Mini App – Spin & Win</title>
+  <!-- Telegram Web‑App JS -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f0f2f5;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    video {
-      width: 100%;
-      border-radius: 12px;
-      margin-bottom: 10px;
-      background: #000;
-    }
-    #title {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    #earn-status {
-      color: green;
-      margin-top: 10px;
-    }
+    :root { --brand: #006eff; }
+    * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 2rem; text-align: center; }
+    button { background: var(--brand); border: none; color: #fff; padding: .8rem 1.4rem; border-radius: 8px; font-size: 1rem; cursor: pointer; margin: 0.5rem; }
+    #coin { font-size: 1.3rem; margin: 1rem 0; }
+    #videoWrap { margin-top: 1.2rem; display: none; }
+    video { width: 100%; max-height: 60vh; border: 2px solid var(--brand); border-radius: 12px; }
+    #title { margin: .5rem 0; font-weight: 600; }
+    #referral { margin: 1rem 0; font-size: 0.9rem; word-break: break-all; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div id="title">🎬 Earn Coins by Watching Video</div>
-    <video id="rewardVideo" controls playsinline preload="metadata">
-      <source src="https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/video1.mp4" type="video/mp4" />
-      Your browser does not support HTML5 video.
-    </video>
+  <h2>🎁 Earn Coins by Watching Video</h2>
+  <div id="user" hidden>
+    Logged in as <span id="userName"></span>
+    <div id="referral"></div>
+  </div>
+  <button id="login">🔑 Sign‑in with Google</button>
+  <div id="coin">Coins: 0</div>
+  <button id="spin">🎰 Spin & Win</button>
+  <div id="videoWrap">
+    <div id="title"></div>
+    <video id="rewardVideo" controls playsinline preload="metadata" crossorigin="anonymous" style="background:#000;border-radius:12px;width:100%;max-height:60vh;">
+  <source src="" type="video/mp4" />
+  Sorry, your browser doesn't support embedded videos.
+</video>
     <p>Watch the full video to earn 1 coin.</p>
-    <div id="earn-status"></div>
   </div>
 
   <script>
-    const video = document.getElementById('rewardVideo');
-    const status = document.getElementById('earn-status');
-    let rewardGiven = false;
+    // 1. Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuZHkVHWZbJSYAeE7iC1ZCaw4gOlvtz88",
+      authDomain: "rewardminiapp.firebaseapp.com",
+      projectId: "rewardminiapp",
+      storageBucket: "rewardminiapp.firebasestorage.app",
+      messagingSenderId: "141140205968",
+      appId: "1:141140205968:web:4bfd0454e624f807cd5315"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    video.addEventListener('ended', () => {
-      if (!rewardGiven) {
-        rewardGiven = true;
-        status.textContent = '✅ You earned 1 coin!';
-        // Here you can save to localStorage or Firebase
-        // Example: localStorage.setItem('coins', coins + 1);
+    // 2. Telegram Ready
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    tg?.expand();
+
+    // 3. UI References
+    const loginBtn = document.getElementById('login');
+    const userBox = document.getElementById('user');
+    const userNameSpan = document.getElementById('userName');
+    const referralBox = document.getElementById('referral');
+    const coinEl = document.getElementById('coin');
+    const spinBtn = document.getElementById('spin');
+    const videoWrap = document.getElementById('videoWrap');
+    const videoEl = document.getElementById('rewardVideo');
+    const titleEl = document.getElementById('title');
+
+    // 4. Coin Logic
+    const uidKey = () => `coins_${auth.currentUser?.uid || 'anon'}`;
+    const getCoins = () => parseInt(localStorage.getItem(uidKey()) || '0', 10);
+    const setCoins = c => {
+      localStorage.setItem(uidKey(), c);
+      coinEl.textContent = 'Coins: ' + c;
+    };
+    setCoins(getCoins());
+
+    // 5. Login Logic
+    loginBtn.onclick = () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => alert(err.message));
+    };
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginBtn.style.display = 'none';
+        userNameSpan.textContent = user.displayName || user.email;
+        userBox.hidden = false;
+        setCoins(getCoins());
+        referralBox.innerHTML = `Referral link: <a href="https://t.me/Ghuri_bot?start=${user.uid}">https://t.me/Ghuri_bot?start=${user.uid}</a>`;
+        loadVideoList();
       }
     });
+
+    // 6. Load videos
+    const JSON_URL = 'videos.json';
+    let playlist = [];
+    async function loadVideoList() {
+      try {
+        const res = await fetch(JSON_URL);
+        const data = await res.json();
+        playlist = data.videos || [];
+        chooseVideo();
+      } catch (e) {
+        console.error('Failed to load videos.json', e);
+        tg?.showAlert?.('Could not load videos');
+      }
+    }
+
+    function chooseVideo() {
+      if (!playlist.length) { tg?.showAlert?.('No video available'); return; }
+      const unviewed = playlist.filter(v => !localStorage.getItem(rewardKey(v.url)));
+      const vid = unviewed.length ? unviewed[Math.floor(Math.random() * unviewed.length)] : playlist[Math.floor(Math.random() * playlist.length)];
+      titleEl.textContent = vid.title;
+      videoEl.src = vid.url;
+      videoEl.load();
+      videoEl.dataset.currentUrl = vid.url;
+      videoEl.dataset.rewarded = '';
+      videoWrap.style.display = 'block';
+    }
+
+    function rewardKey(url) {
+      return `rewarded_${auth.currentUser.uid}_${url}`;
+    }
+
+    // 7. Video reward
+    videoEl.addEventListener('ended', () => {
+      const user = auth.currentUser;
+      if (!user) { tg?.showAlert?.('Please sign‑in first'); return; }
+      const url = videoEl.dataset.currentUrl;
+      const key = rewardKey(url);
+      if (localStorage.getItem(key)) {
+        tg?.showAlert?.('Reward already claimed for this video');
+        return;
+      }
+      const coins = getCoins() + 1;
+      setCoins(coins);
+      localStorage.setItem(key, '1');
+      videoEl.dataset.rewarded = '1';
+      tg?.showAlert?.(`🎉 You earned 1 coin! Total: ${coins}`);
+    });
+
+    // 8. Spin & Win
+    const spinKey = () => `last_spin_${auth.currentUser?.uid}`;
+    spinBtn.onclick = () => {
+      const lastSpin = localStorage.getItem(spinKey());
+      const today = new Date().toDateString();
+      if (lastSpin === today) {
+        tg?.showAlert?.('You already spun today. Try again tomorrow!');
+        return;
+      }
+      const prizes = [0, 1, 2, 5, 10];
+      const prize = prizes[Math.floor(Math.random() * prizes.length)];
+      if (prize > 0) {
+        const coins = getCoins() + prize;
+        setCoins(coins);
+        tg?.showAlert?.(`🎉 You won ${prize} coins!`);
+      } else {
+        tg?.showAlert?.('😢 No luck this time. Try again tomorrow!');
+      }
+      localStorage.setItem(spinKey(), today);
+    };
   </script>
 </body>
 </html>
