@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Telegram Reward Mini App – Spin & Win</title>
-  <!-- Telegram Web-App JS -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <!-- Monetag Ad Code -->
   <script src='//libtl.com/sdk.js' data-zone='9459480' data-sdk='show_9459480'></script>
   <style>
     :root { --brand: #006eff; }
@@ -27,11 +24,10 @@
 </head>
 <body>
   <h2>🎁 Earn Coins by Watching Video</h2>
-  <div id="user" hidden>
+  <div id="user">
     Logged in as <span id="userName"></span>
     <div id="referral"></div>
   </div>
-  <button id="login">🔑 Sign-in with Google</button>
   <div id="coin">Coins: 0</div>
   <button id="spin">🎰 Spin & Win</button>
   <div id="videoWrap">
@@ -48,25 +44,20 @@
   </div>
 
   <script>
-    // 1. Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDuZHkVHWZbJSYAeE7iC1ZCaw4gOlvtz88",
       authDomain: "rewardminiapp.firebaseapp.com",
       projectId: "rewardminiapp",
-      storageBucket: "rewardminiapp.firebasestorage.app",
+      storageBucket: "rewardminiapp.appspot.com",
       messagingSenderId: "141140205968",
       appId: "1:141140205968:web:4bfd0454e624f807cd5315"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
 
-    // 2. Telegram Ready
     const tg = window.Telegram?.WebApp;
     tg?.ready();
     tg?.expand();
 
-    // 3. UI References
-    const loginBtn = document.getElementById('login');
     const userBox = document.getElementById('user');
     const userNameSpan = document.getElementById('userName');
     const referralBox = document.getElementById('referral');
@@ -78,8 +69,13 @@
     const adWrap = document.getElementById('adWrap');
     const adContainer = document.getElementById('adContainer');
 
-    // 4. Coin Logic
-    const uidKey = () => `coins_${auth.currentUser?.uid || 'anon'}`;
+    const user = tg?.initDataUnsafe?.user || { id: 'guest', username: 'Guest' };
+    const uid = user?.id || 'anon';
+    const displayName = user?.username || user?.first_name || 'Guest';
+    userNameSpan.textContent = displayName;
+    referralBox.innerHTML = `Referral link: <a href="https://t.me/Ghuri_bot?start=${uid}">https://t.me/Ghuri_bot?start=${uid}</a>`;
+
+    const uidKey = () => `coins_${uid}`;
     const getCoins = () => parseInt(localStorage.getItem(uidKey()) || '0', 10);
     const setCoins = c => {
       localStorage.setItem(uidKey(), c);
@@ -87,24 +83,6 @@
     };
     setCoins(getCoins());
 
-    // 5. Login Logic
-    loginBtn.onclick = () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(err => tg?.showAlert?.(err.message));
-    };
-
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginBtn.style.display = 'none';
-        userNameSpan.textContent = user.displayName || user.email;
-        userBox.hidden = false;
-        setCoins(getCoins());
-        referralBox.innerHTML = `Referral link: <a href="https://t.me/Ghuri_bot?start=${user.uid}">https://t.me/Ghuri_bot?start=${user.uid}</a>`;
-        loadVideoList();
-      }
-    });
-
-    // 6. Load Videos
     const JSON_URL = 'https://cdn.jsdelivr.net/gh/mdemran4352/telegram-reward-app/videos.json';
     let playlist = [];
     async function loadVideoList() {
@@ -114,10 +92,10 @@
         playlist = data.videos || [];
         chooseVideo();
       } catch (e) {
-        console.error('Failed to load videos.json', e);
         tg?.showAlert?.('Could not load videos');
       }
     }
+    loadVideoList();
 
     function chooseVideo() {
       if (!playlist.length) {
@@ -127,7 +105,7 @@
       const unviewed = playlist.filter(v => !localStorage.getItem(rewardKey(v.url)));
       const vid = unviewed.length ? unviewed[Math.floor(Math.random() * unviewed.length)] : playlist[Math.floor(Math.random() * playlist.length)];
       titleEl.textContent = vid.title;
-      videoEl.src = vid.url;
+      videoEl.querySelector('source').src = vid.url;
       videoEl.load();
       videoEl.dataset.currentUrl = vid.url;
       videoEl.dataset.rewarded = '';
@@ -136,50 +114,39 @@
     }
 
     function rewardKey(url) {
-      return `rewarded_${auth.currentUser?.uid}_${url}`;
+      return `rewarded_${uid}_${url}`;
     }
 
-    // 7. Ad and Video Reward Logic
     let adWatchStartTime = null;
     let adWatchedFor30Seconds = false;
 
     videoEl.addEventListener('ended', () => {
-      const user = auth.currentUser;
-      if (!user) {
-        tg?.showAlert?.('Please sign-in first');
-        return;
-      }
       videoWrap.style.display = 'none';
       adWrap.style.display = 'block';
       showMonetagAd();
     });
 
     function showMonetagAd() {
-      adContainer.innerHTML = ''; // Clear previous ad
+      adContainer.innerHTML = '';
       adWatchStartTime = Date.now();
       adWatchedFor30Seconds = false;
 
-      // Load Monetag ad
       if (window.show_9459480) {
         window.show_9459480('preload').then(() => {
-          window.show_9459480('pop'); // Show Rewarded Interstitial
-          // Track ad watch time
+          window.show_9459480('pop');
           const adWatchInterval = setInterval(() => {
-            const timeWatched = (Date.now() - adWatchStartTime) / 1000; // Convert to seconds
+            const timeWatched = (Date.now() - adWatchStartTime) / 1000;
             if (timeWatched >= 30) {
               adWatchedFor30Seconds = true;
               clearInterval(adWatchInterval);
             }
           }, 1000);
         }).catch(err => {
-          console.error('Failed to load Monetag ad', err);
-          tg?.showAlert?.('Could not load ad, please try again');
           adWrap.style.display = 'none';
           videoWrap.style.display = 'block';
           chooseVideo();
         });
       } else {
-        tg?.showAlert?.('Ad system not ready');
         adWrap.style.display = 'none';
         videoWrap.style.display = 'block';
         chooseVideo();
@@ -187,10 +154,8 @@
     }
 
     function handleAdClose() {
-      const user = auth.currentUser;
       const videoUrl = videoEl.dataset.currentUrl;
       const key = rewardKey(videoUrl);
-
       if (adWatchedFor30Seconds && !localStorage.getItem(key)) {
         const coins = getCoins() + 1;
         setCoins(coins);
@@ -202,22 +167,19 @@
       } else {
         tg?.showAlert?.('Reward already claimed for this video.');
       }
-
       adWrap.style.display = 'none';
       videoWrap.style.display = 'block';
       chooseVideo();
-      videoEl.play(); // Auto-play the next video
+      videoEl.play();
     }
 
-    // Simulate ad close (replace with actual Monetag ad close event if available)
     setInterval(() => {
       if (adWrap.style.display === 'block' && adWatchedFor30Seconds) {
-        handleAdClose(); // Trigger after 30 seconds if ad is still visible
+        handleAdClose();
       }
     }, 1000);
 
-    // 8. Spin & Win
-    const spinKey = () => `last_spin_${auth.currentUser?.uid}`;
+    const spinKey = () => `last_spin_${uid}`;
     spinBtn.onclick = () => {
       const lastSpin = localStorage.getItem(spinKey());
       const today = new Date().toDateString();
