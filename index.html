@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Telegram Reward – Ads Only (Monetag)</title>
+  <title>Telegram Reward – Random Ads + Timer</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Monetag SDK -->
   <script src="//libtl.com/sdk.js" data-zone="9459480" data-sdk="show_9459480"></script>
@@ -12,20 +12,21 @@
     *{box-sizing:border-box;font-family:system-ui,sans-serif}
     body{margin:0;padding:2rem;text-align:center}
     button{background:var(--brand);color:#fff;border:none;padding:.8rem 1.4rem;border-radius:8px;font-size:1rem;cursor:pointer;margin:1rem auto;display:block}
-    #coin{font-size:1.3rem;margin-top:1rem}
-    #userInfo{margin-top:1rem;font-size:.95rem}
+    #coin,#adsCount{font-size:1.2rem;margin-top:.6rem}
+    #userInfo{margin:1rem 0;font-size:.95rem}
+    #timer{font-size:1.5rem;color:#d9534f;margin-top:0.5rem;display:none}
   </style>
 </head>
 <body>
   <h2>📢 Earn Coins by Viewing Ads</h2>
-
   <div id="userInfo">
     Name: <span id="tgName"></span><br>
     Referral: <span id="ref"></span><br>
     <div id="coin">Points: 0</div>
+    <div id="adsCount">Ads viewed: 0</div>
   </div>
-
   <button id="viewAdBtn">▶️ View Ad</button>
+  <div id="timer">30</div>
 
 <script>
 /************ Telegram Init ************/
@@ -34,54 +35,62 @@ const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
 const tgNameSpan=document.getElementById('tgName');
 const refSpan=document.getElementById('ref');
 const coinEl=document.getElementById('coin');
+const adsCountEl=document.getElementById('adsCount');
 const viewAdBtn=document.getElementById('viewAdBtn');
+const timerEl=document.getElementById('timer');
 
 const user=tg?.initDataUnsafe?.user||{id:'guest',username:'Guest'};
 const uid=user.id||'guest';
 const displayName=user.username||user.first_name||'Guest';
 
-// show user info
 tgNameSpan.textContent=displayName;
 refSpan.textContent=`https://t.me/${tg?.initDataUnsafe?.bot?.username||'YourBot'}?start=${uid}`;
 
-/************ Coins helpers ************/
-const storageKey='coins_'+uid;
-const getCoins=()=>parseInt(localStorage.getItem(storageKey)||'0');
-const setCoins=c=>{localStorage.setItem(storageKey,c);coinEl.textContent='Points: '+c};
+/********* Storage helpers **********/
+const coinKey='coins_'+uid;
+const adKey='ads_'+uid;
+const getCoins=()=>parseInt(localStorage.getItem(coinKey)||'0');
+const setCoins=c=>{localStorage.setItem(coinKey,c);coinEl.textContent='Points: '+c};
+const getAds=()=>parseInt(localStorage.getItem(adKey)||'0');
+const setAds=a=>{localStorage.setItem(adKey,a);adsCountEl.textContent='Ads viewed: '+a};
 setCoins(getCoins());
+setAds(getAds());
 
-/************ Monetag Ad flow ************/
+/************ Monetag Ad show helper ************/
 function showRewardAd(){
   return new Promise((resolve,reject)=>{
-    if(typeof show_9459480!=='function'){
-      tg?.showAlert?.('Ad SDK not loaded');
-      return reject('sdk');
-    }
-    // preload first for smoother experience
-    show_9459480('preload').finally(()=>{
-      const start=Date.now();
-      show_9459480('pop').then(()=>{
-        const watched=(Date.now()-start)/1000;
-        resolve(watched); // resolve with seconds watched
-      }).catch(reject);
-    });
+    if(typeof show_9459480!=='function') return reject('Monetag SDK not ready');
+    // randomize format in future; for now always pop
+    show_9459480('pop').then(()=>resolve()).catch(reject);
   });
 }
 
+/************ Timer helper ************/
+function startCountdown(seconds){
+  timerEl.style.display='block';
+  timerEl.textContent=seconds;
+  return new Promise(res=>{
+    const iv=setInterval(()=>{
+      seconds--;timerEl.textContent=seconds;
+      if(seconds<=0){clearInterval(iv);timerEl.style.display='none';res();}
+    },1000);
+  });
+}
+
+/************ Main click ************/
 viewAdBtn.onclick=async()=>{
   viewAdBtn.disabled=true;
   try{
-    const secs=await showRewardAd();
-    if(secs>=30){
-      const coins=getCoins()+1;
-      setCoins(coins);
-      tg?.showAlert?.(`✅ You earned 1 coin! Total: ${coins}`);
-    }else{
-      tg?.showAlert?.('⏱️ Please watch at least 30s to earn a coin');
-    }
+    await showRewardAd();              // open ad popup
+    await startCountdown(30);          // count 30s on page
+    // reward if still disabled (means not clicked again)
+    const coins=getCoins()+1;
+    const ads=getAds()+1;
+    setCoins(coins);
+    setAds(ads);
+    tg?.showAlert?.(`✅ 1 coin added! Total ${coins}`);
   }catch(e){
-    console.warn('Ad error',e);
-    tg?.showAlert?.('Ad failed, try again later');
+    tg?.showAlert?.('Ad failed, try again');
   }
   viewAdBtn.disabled=false;
 };
